@@ -4,6 +4,7 @@ go 1.23.11
 
 require (
 	github.com/go-playground/validator/v10 v10.27.0
+	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/kamva/mgm/v3 v3.5.0
 	github.com/redis/go-redis/v9 v9.11.0
