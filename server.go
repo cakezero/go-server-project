@@ -3,10 +3,24 @@ package main
 import (
 	"fmt"
 	"github.com/cakezero/go-server/src/routes"
-	// "github.com/cakezero/go-server/src/utils"
+	"github.com/cakezero/go-server/src/utils"
 	"net/http"
 	"log"
 )
+
+func init () {
+	loadEnvErr := utils.LoadEnv();
+	if loadEnvErr != nil {
+		panic(loadEnvErr)
+	}
+
+	dbConnectErr := utils.DB()
+	if dbConnectErr != nil {
+		panic(dbConnectErr)
+	}
+
+	fmt.Println("DB connected")
+}
 
 
 func main() {
@@ -14,9 +28,11 @@ func main() {
 
 	// utils.GetRedisClient()
 
-	fmt.Println("Server is running on port: 9000")
+	port := utils.PORT
 
-	err := http.ListenAndServe(":9000", nil)
+	fmt.Printf("Server is running on port %s\n", port)
+
+	err := http.ListenAndServe(port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
