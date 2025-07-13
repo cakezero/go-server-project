@@ -26,8 +26,6 @@ func init () {
 func main() {
 	routes.Routes()
 
-	// utils.GetRedisClient()
-
 	port := utils.PORT
 
 	fmt.Printf("Server is running on port %s\n", port)
