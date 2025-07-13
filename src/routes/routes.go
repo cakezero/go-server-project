@@ -2,11 +2,16 @@ package routes
 
 import (
 	"github.com/cakezero/go-server/src/controllers"
-	"net/http"
+	"github.com/gorilla/mux"
 )
 
-func Routes() {
-	http.HandleFunc("/", controllers.Home)
-	http.HandleFunc("/login", controllers.Login)
-	http.HandleFunc("/register", controllers.Register)
+func Routes() *mux.Router {
+	router := mux.NewRouter()
+	router.HandleFunc("/", controllers.Home)
+	router.HandleFunc("/login", controllers.Login).Methods("POST")
+	router.HandleFunc("/register", controllers.Register).Methods("POST")
+	router.HandleFunc("/perform-action", controllers.PerformAction).Methods("POST")
+	router.HandleFunc("/get-history", controllers.ArithmeticHistory).Methods("GET")
+
+	return router
 }
