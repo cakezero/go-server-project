@@ -78,7 +78,6 @@ func Login(res http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(res).Encode(data)
 }
 
-// cr, _ := mgm.Coll(existingUser).Find(context.Background(), )
 func Register(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("Register hit!")
 	res.Header().Set("Content-Type", "application/json")
