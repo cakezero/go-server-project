@@ -7,9 +7,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+var redisClient *redis.Client
+
 func GetRedisClient() *redis.Client {
 
-	redisClient := redis.NewClient(&redis.Options{
+	if redisClient != nil {
+		return redisClient
+	}
+
+	redisClient = redis.NewClient(&redis.Options{
 		Addr: REDIS_URI,
 		Username: REDIS_USERNAME,
 		Password: REDIS_PASSWORD,
