@@ -15,16 +15,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type response map[string]interface{}
+type GlobalMap map[string]any
 
 var validate = validator.New()
 
-func getJSONMessage(Type, message string) map[string]interface{} {
+func GetJSONMessage(Type, message string) GlobalMap {
 	switch Type {
 		case "e":
-			return response{"error": message}
+			return GlobalMap{"error": message}
 		default:
-			return response{"message": message}
+			return GlobalMap{"message": message}
 	}
 }
 
@@ -35,24 +35,19 @@ func Login(res http.ResponseWriter, req *http.Request) {
 	var user models.User
 
 	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "Bad Request"))
+		Response(res, "Data received from request is not appropriate", "b")
 		return
 	}
 
 	if user.Email == "" || user.Password == "" {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "Both email and password are required"))
+		Response(res, "Both email and password are required", "b")
 		return
 	}
 
-	existingUser := &models.User{}
-
-	userProp := mgm.Coll(existingUser).FindOne(context.Background(), bson.M{"email": user.Email})
+	userProp := mgm.Coll(&models.User{}).FindOne(context.Background(), bson.M{"email": user.Email})
 
 	if userProp.Err() != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "email or password is invalid"))
+		Response(res, "email or password is invalid", "b")
 		return
 	}
 
@@ -60,39 +55,36 @@ func Login(res http.ResponseWriter, req *http.Request) {
 
 	decodeErr := userProp.Decode(&userFound)
 	if decodeErr != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "Internal server error"))
+		Response(res, "internal server error", "e")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userFound.Password), []byte(user.Password)); err != nil {
-
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "email or password is invalid"))
+		Response(res, "email or password is invalid", "b")
 		return
 	}
 
-	res.WriteHeader(http.StatusOK)
-	data := getJSONMessage("m", "User logged in")
-	data["user"] = userFound
-	json.NewEncoder(res).Encode(data)
+	Response(res, "user logged in", "", userFound)
 }
 
 func Register(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("Register hit!")
 	res.Header().Set("Content-Type", "application/json")
-	
+
 	var user models.User
 
 	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "badRequest"))
+		Response(res, "Request data received was not appropriate", "b")
 		return
 	}
 
 	if validateError := validate.Struct(user); validateError != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(getJSONMessage("e", "All fields are required"))
+		Response(res, "All fields are required", "b")
+		return
+	}
+
+	if length := len(user.Password); length < 8 {
+		Response(res, "Password must be gte 8", "b")
 		return
 	}
 
@@ -100,9 +92,7 @@ func Register(res http.ResponseWriter, req *http.Request) {
 	if checkUserErr := mgm.Coll(existingUser).First(bson.M{"email": user.Email}, existingUser); checkUserErr != nil {
 		hashedPassword, hashErr := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
 		if hashErr != nil {
-
-			res.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(res).Encode(getJSONMessage("e", "internalServerError"))
+			Response(res, "Internal server error", "e")
 			return
 		}
 
@@ -110,20 +100,15 @@ func Register(res http.ResponseWriter, req *http.Request) {
 		saveErr := mgm.Coll(&user).Create(&user)
 
 		if saveErr != nil {
-			res.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(res).Encode(getJSONMessage("e", "internalServerError"))
-			return 
+			Response(res, "User not saved", "e")
+			return
 		}
 
-		res.WriteHeader(http.StatusOK)
-		data := getJSONMessage("m", "user registered")
-		data["user"] = user
-		json.NewEncoder(res).Encode(data)
+		Response(res, "User saved", "", user)
 		return
 	}
 
-	res.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(res).Encode(getJSONMessage("e", "emailExists"))
+	Response(res, "Email exists", "b")
 }
 
 func Home(res http.ResponseWriter, req *http.Request) {
