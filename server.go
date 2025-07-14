@@ -24,15 +24,14 @@ func init () {
 
 
 func main() {
-	routes.Routes()
+	router := routes.Routes()
 
 	port := utils.PORT
 
 	fmt.Printf("Server is running on port %s\n", port)
 
-	err := http.ListenAndServe(port, nil)
+	err := http.ListenAndServe(port, router)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
-
 }
