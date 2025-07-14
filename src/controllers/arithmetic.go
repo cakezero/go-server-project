@@ -70,7 +70,7 @@ func PerformAction(res http.ResponseWriter, req *http.Request) {
 	var userAction computation
 
 	if decodeErr := json.NewDecoder(req.Body).Decode(&userAction); decodeErr != nil {
-		Response(res, "Request data received is not appropriate", "e")
+		Response(res, "Data received from request is not appropriate", "e")
 		return
 	}
 
