@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"encoding/json"
+	"strings"
+	"time"
 
 	"github.com/cakezero/go-server/src/models"
 	"github.com/cakezero/go-server/src/utils"
@@ -55,7 +56,28 @@ func Login(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	utils.Response(res, "user logged in", "", userFound)
+	accessToken, refreshToken, tokenFetchErr := utils.GenerateJWTs(user.ID.String())
+
+	if tokenFetchErr != nil {
+		utils.Response(res, "Error creating access/refresh token", "e")
+		return
+	}
+
+	http.SetCookie(res, &http.Cookie{
+		Name: "refresh_token",
+		Value: refreshToken,
+		HttpOnly: true,
+		Secure: true,
+		Path: "/",
+		MaxAge: 7 * 24 * 60 * 60,
+	})
+
+	data := utils.GlobalMap{
+		"user": userFound,
+		"token": accessToken,
+	}
+
+	utils.Response(res, "user logged in", "", data)
 }
 
 func Register(res http.ResponseWriter, req *http.Request) {
@@ -95,13 +117,99 @@ func Register(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		utils.Response(res, "User saved", "", user)
+		accessToken, refreshToken, tokenFetchErr := utils.GenerateJWTs(user.ID.String())
+
+		if tokenFetchErr != nil {
+			utils.Response(res, "Error creating access/refresh token", "e")
+			return
+		}
+
+		http.SetCookie(res, &http.Cookie{
+			Name: "refresh_token",
+			Value: refreshToken,
+			HttpOnly: true,
+			Secure: true,
+			Path: "/",
+			MaxAge: 7 * 24 * 60 * 60,
+		})
+
+		data := utils.GlobalMap{
+			"user": user,
+			"token": accessToken,
+		}
+
+		utils.Response(res, "User saved", "", data)
 		return
 	}
 
 	utils.Response(res, "Email exists", "b")
 }
 
-func Home(res http.ResponseWriter, req *http.Request) {
-	fmt.Println("Home hit!")
+func RefreshTokenHandler(res http.ResponseWriter, req *http.Request) {
+	refresh_cookie, err := req.Cookie("refresh_token")
+
+	if err != nil {
+		utils.Response(res, "Refresh token not found", "u")
+		return
+	}
+
+	userId, _ := utils.DecodeJWT(res, refresh_cookie.Value)
+
+	if userId == "" {
+		return
+	}
+
+	accessToken, _, err := utils.GenerateJWTs(userId)
+	if err != nil {
+		utils.Response(res, "Failed to generate JWT", "e")
+		return
+	}
+
+	data := utils.GlobalMap{
+		"token": accessToken,
+	}
+
+	utils.Response(res, "Access token refreshed", "", data)
+}
+
+func Logout(res http.ResponseWriter, req *http.Request) {
+	fmt.Println("Logout hit!")
+
+	authHeader := req.Header.Get("Authorizaton")
+	parts := strings.Split(authHeader, " ")
+
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		utils.Response(res, "Invalid auth header format", "u")
+		return
+	}
+
+	accessToken := parts[1]
+	_, claims := utils.DecodeJWT(res, accessToken)
+
+	exp := int64(0)
+	if expFloat, ok := claims["exp"].(float64); ok {
+		exp = int64(expFloat)
+	}
+
+	if exp > 0 {
+		ttl := time.Until(time.Unix(exp, 0))
+		err := utils.GetRedisClient().Set(ctx, accessToken, "revoked", ttl).Err()
+
+		if err != nil {
+			utils.Response(res, "Error revoking token", "e")
+			return
+		}
+	}
+
+	http.SetCookie(res, &http.Cookie{
+		Name: "refresh_token",
+		Value: "",
+		MaxAge: -1,
+		Path: "/",
+		HttpOnly: true,
+		Secure: true,
+		Expires: time.Unix(0, 0),
+	})
+
+	utils.Response(res, "User logged out", "")
 }
