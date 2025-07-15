@@ -8,30 +8,28 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cakezero/go-server/src/middlewares"
 	"github.com/cakezero/go-server/src/models"
 	"github.com/cakezero/go-server/src/utils"
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var Ctx = context.Background()
+var ctx = context.Background()
 
 func ArithmeticHistory(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
+	id := req.Context().Value("user-id").(string)
 
-	id := req.Context().Value(middlewares.IdKey).(string)
-	fmt.Printf("id: %s\n", id)
 	var history []models.Arithmetic
 
-	historyFetch, findErr := mgm.Coll(&models.Arithmetic{}).Find(Ctx, bson.M{"user": id})
+	historyFetch, findErr := mgm.Coll(&models.Arithmetic{}).Find(ctx, bson.M{"user": id})
 	if findErr != nil {
 		fmt.Println(findErr.Error())
 		utils.Response(res, "No arithmetic has been performed", "")
 		return
 	}
 
-	if fetchErr := historyFetch.All(Ctx, &history); fetchErr != nil {
+	if fetchErr := historyFetch.All(ctx, &history); fetchErr != nil {
 		utils.Response(res, "Error fetching history", "e")
 		return
 	}
@@ -41,8 +39,8 @@ func ArithmeticHistory(res http.ResponseWriter, req *http.Request) {
 
 func PerformAction(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
-	id := req.Context().Value(middlewares.IdKey).(string)
-	fmt.Printf("id: %s\n", id)
+	id := req.Context().Value("user-id").(string)
+
 	var userArithmetic models.Arithmetic
 	type computation struct {
 		First string

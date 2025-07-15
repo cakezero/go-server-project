@@ -12,12 +12,13 @@ var (
 	REDIS_PASSWORD string
 	REDIS_URI string
 	PORT string
+	JWT_SECRET, REFRESH_SECRET []byte
 )
 
 func LoadEnv() (err error) {
 	err = godotenv.Load()
 
-  REDIS_USERNAME = os.Getenv("DB_USERNAME")
+  REDIS_USERNAME = os.Getenv("REDIS_USERNAME")
 
   DB_URI = os.Getenv("DB_URI")
 
@@ -29,7 +30,11 @@ func LoadEnv() (err error) {
 
 	REDIS_URI = os.Getenv("REDIS_URI")
 
-  REDIS_PASSWORD = os.Getenv("DB_PASSWORD")
+  REDIS_PASSWORD = os.Getenv("REDIS_PASSWORD")
+
+	JWT_SECRET = []byte(os.Getenv("JWT_SECRET"))
+
+	REFRESH_SECRET = []byte(os.Getenv("REFRESH_SECRET"))
 
 	return
 }
