@@ -29,18 +29,18 @@ func GenerateJWTs(uid string) (accessToken, refreshToken string, err error) {
 	return 
 }
 
-func DecodeJWT(res http.ResponseWriter, jwt_value string) (string, jwt.MapClaims) {
+func DecodeJWT(res http.ResponseWriter, jwt_value string) (string, jwt.MapClaims, error) {
 	parsedToken, parseErr := jwt.Parse(jwt_value, func (token *jwt.Token) (interface{}, error) {
 		return REFRESH_SECRET, nil
 	})
 
 	if parseErr != nil || !parsedToken.Valid {
 		Response(res, "Refresh token is invalid", "u")
-		return "", nil
+		return "", nil, parseErr
 	}
 
 	claims := parsedToken.Claims.(jwt.MapClaims)
 	id := claims["id"].(string)
 
-	return id, claims
+	return id, claims, nil
 }

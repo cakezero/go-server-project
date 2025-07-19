@@ -18,7 +18,8 @@ var ctx = context.Background()
 
 func ArithmeticHistory(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
-	id := req.Context().Value("user-id").(string)
+	id := req.URL.Query().Get("id")
+	fmt.Println("User ID history:", id)
 
 	var history []models.Arithmetic
 
@@ -39,13 +40,13 @@ func ArithmeticHistory(res http.ResponseWriter, req *http.Request) {
 
 func PerformAction(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
-	id := req.Context().Value("user-id").(string)
 
 	var userArithmetic models.Arithmetic
 	type computation struct {
 		First string
 		Second string
 		Action string
+		Id string
 	}
 
 	var userAction computation
@@ -89,16 +90,37 @@ func PerformAction(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userArithmetic.Equation = fmt.Sprintf("%.0f %s %.0f 🟰 %.0f", firstNumber, symbol, secondNumber, answer)
-	userArithmetic.Action = action
-	userArithmetic.User = id
+	var equation string
 
-	saveErr := mgm.Coll(&userArithmetic).Create(&userArithmetic)
+	if check := answer == float64(int64(answer)); check {
+    equation = fmt.Sprintf("%d %s %d 🟰 %d", int(firstNumber), symbol, int(secondNumber), int(answer))
+	} else {
+		equation = fmt.Sprintf("%.1f %s %.1f 🟰 %.03f", firstNumber, symbol, secondNumber, answer)
+	}
 
-	if saveErr != nil {
-		utils.Response(res, "Error saving arithmetic calculation", "e")
+	id := userAction.Id
+
+	if id != "" {
+		userArithmetic.Equation = equation
+		userArithmetic.Action = action
+		userArithmetic.User = userAction.Id
+
+		saveErr := mgm.Coll(&userArithmetic).Create(&userArithmetic)
+
+		if saveErr != nil {
+			utils.Response(res, "Error saving arithmetic calculation", "e")
+			return
+		}
+
+		utils.Response(res, "arithmetic action performed", "", answer)
 		return
 	}
 
-	utils.Response(res, "arithmetic action performed", "", answer)
+	data := utils.GlobalMap{
+		"answer": answer,
+		"equation": equation,
+		"action": action,
+	}	
+
+	utils.Response(res, "arithmetic action performed", "", data)
 }

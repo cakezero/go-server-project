@@ -153,7 +153,11 @@ func RefreshTokenHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userId, _ := utils.DecodeJWT(res, refresh_cookie.Value)
+	userId, _, decodeErr := utils.DecodeJWT(res, refresh_cookie.Value)
+
+	if decodeErr != nil {
+		return
+	}
 
 	if userId == "" {
 		return
@@ -165,17 +169,13 @@ func RefreshTokenHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	data := utils.GlobalMap{
-		"token": accessToken,
-	}
-
-	utils.Response(res, "Access token refreshed", "", data)
+	utils.Response(res, "Access token refreshed", "", accessToken)
 }
 
 func Logout(res http.ResponseWriter, req *http.Request) {
 	fmt.Println("Logout hit!")
 
-	authHeader := req.Header.Get("Authorizaton")
+	authHeader := req.Header.Get("Authorization")
 	parts := strings.Split(authHeader, " ")
 
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
@@ -184,7 +184,11 @@ func Logout(res http.ResponseWriter, req *http.Request) {
 	}
 
 	accessToken := parts[1]
-	_, claims := utils.DecodeJWT(res, accessToken)
+	_, claims, decodeErr := utils.DecodeJWT(res, accessToken)
+
+	if decodeErr != nil {
+		return
+	}
 
 	exp := int64(0)
 	if expFloat, ok := claims["exp"].(float64); ok {

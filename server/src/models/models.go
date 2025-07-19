@@ -6,7 +6,7 @@ import "github.com/kamva/mgm/v3"
 type User struct {
 	mgm.DefaultModel `bson:",inline"`
 
-	Name string `json:"name" bson:"name" validate:"required"`
+	Username string `json:"username" bson:"username" validate:"required"`
 	Email string `json:"email" bson:"email" validate:"required"`
 	Password string `json:"password" bson:"password" validate:"required"`
 }
