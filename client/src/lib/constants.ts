@@ -1,0 +1,1 @@
+export const BACKEND_URL = "https://go-cal-server.onrender.com"
