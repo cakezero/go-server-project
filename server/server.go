@@ -10,10 +10,10 @@ import (
 )
 
 func init () {
-	loadEnvErr := utils.LoadEnv();
-	if loadEnvErr != nil {
-		panic(loadEnvErr)
-	}
+	utils.LoadEnv();
+	// if loadEnvErr != nil {
+	// 	panic(loadEnvErr)
+	// }
 
 	dbConnectErr := utils.DB()
 	if dbConnectErr != nil {
